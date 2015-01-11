@@ -43,8 +43,9 @@ _sqdPos = [];
 
 
 // Now we have Unit Positions, We Announce the Mission and Wait
-_msg = format ["We have spotted hostile fireteams in %1! We'll give you some supplies if you can liberate the town.", (_canTown select 0)];
-_alert = [_msg] call VEMFBroadcast;
+_msg = format ["I've Spotted Bandits in %1!", (_canTown select 0)];
+_msg = [(_msg),"I'll Give you some Supplies if you can Liberate the Town."];
+_alert = [_msg] call VEMFRandomBroadcast;
 
 if (!_alert) exitWith {
 	// No Players have a Radio Equipped. Maybe we can try later?
@@ -53,7 +54,12 @@ if (!_alert) exitWith {
 };
 
 // Usage: COORDS, Radius
-[(_canTown select 1),1000] call VEMFNearWait;
+_wait = [(_canTown select 1),1000] call VEMFNearWait;
+
+if (!_wait) exitWith {
+	diag_log text format ["[VEMF]: DynTownInv: Mission Ended for Timeout."];
+	VEMFTownInvaded = nil;
+};
 
 // Player is Near, so Spawn the Units
 [(_canTown select 1),_sqdPos,false,1,"VEMFDynInv"] ExecVM VEMFSpawnAI;
@@ -65,9 +71,19 @@ waitUntil{!isNil "VEMFDynInv"};
 
 // Rewards
 if (!(isNil "VEMFDynInvKiller")) then {
-	_winMsg = format ["%1 has been cleared! You can find your reward at the town center.", (_canTown select 0)];
-	VEMFChatMsg = _winMsg;
-	(owner (vehicle VEMFDynInvKiller)) publicVariableClient "VEMFChatMsg";
+	_winMsg = format ["%1 seems to be clear...", (_canTown select 0)];
+	_winMsg = [(_winMsg),"We left the supplies at the town center."];
+	
+	{
+		if (_x in ["EpochRadio0","EpochRadio1","EpochRadio2","EpochRadio3","EpochRadio4","EpochRadio5","EpochRadio6","EpochRadio7","EpochRadio8","EpochRadio9"]) then {
+			_radio = _x;
+		};
+	} forEach (assignedItems VEMFDynKiller);
+
+	if (!isNil "_radio") then {
+		[_winMsg,_radio] call VEMFBroadcast;
+		(owner (vehicle VEMFDynInvKiller)) publicVariableClient "VEMFChatSound";
+	};
 	VEMFDynKiller = nil;
 	
 	_crate = createVehicle ["Land_PaperBox_C_EPOCH",(_canTown select 1),[],0,"CAN_COLLIDE"];

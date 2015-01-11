@@ -8,10 +8,12 @@ diag_log text "[VEMF]: Loading ExecVM Functions.";
 VEMFSpawnAI      = "\VEMF\Scripts\VSpawnAI.sqf";
 VEMFAIKilled     = "\VEMF\Scripts\VAIKilled.sqf";
 VEMFLocalHandler = "\VEMF\Scripts\VLocalEventhandler.sqf";
+VEMFRadioGen     = "\VEMF\Scripts\VRadio.sqf";
 VEMFGenRanWeps   = "\VEMF\Scripts\VGenWeapons.sqf";
 VEMFLoadAddons   = "\VEMF\Scripts\VAddonLoader.sqf";
 VEMFMissWatchdog = "\VEMF\Scripts\VAIWatchdog.sqf";
 VEMFMissTimer    = "\VEMF\Scripts\VMissionTimer.sqf";
+VEMFChatSound    = true;
 
 diag_log text "[VEMF]: Loading Compiled Functions.";
 
@@ -425,16 +427,44 @@ VEMFLoadLoot = {
 	};
 };
 
-// Alerts Players With a Random Radio Type
+// Alerts Players with a Specific Radio Type
 VEMFBroadcast = {
-	private ["_msg","_eRads","_sent","_allUnits","_curRad","_send"];
+	private ["_msg","_rad","_sent","_index"];
+	
+	_msg = _this select 0;
+	_rad = _this select 1;
+	_sent = false;
+	
+	if (typeName _msg == "STRING") then { _msg = [(_msg)]; };
+	
+	_index = (toArray(_rad));
+	_index = [(_index select ((count _index)-1))];
+	_index = (toString _index);
+	
+	{
+		call compile format["VEMFCivHQ customChat [%1,'_x'];", _index];
+	} forEach _msg;
+	
+	{
+		if (isPlayer _x) then {
+			if (_rad in (assignedItems _x)) then {
+				(owner (vehicle _x)) publicVariableClient "VEMFChatSound";
+				_sent = true;
+			};
+		};
+	} forEach allUnits;
+	
+	_sent
+};
+
+// Alerts Players With a Random Radio Type
+VEMFRandomBroadcast = {
+	private ["_msg","_eRads","_sent","_allUnits","_curRad","_send","_index"];
 	_msg = _this select 0;
 	_eRads = ["EpochRadio0","EpochRadio1","EpochRadio2","EpochRadio3","EpochRadio4","EpochRadio5","EpochRadio6","EpochRadio7","EpochRadio8","EpochRadio9"];
 	_eRads = _eRads call BIS_fnc_arrayShuffle;
 	
-	if (typeName _msg != "STRING") then {
-		_msg = str _msg;
-	};
+	if (typeName _msg == "STRING") then { _msg = [(_msg)]; };
 	
 	// Broadcast to Each Player
 	_sent = false;
@@ -464,10 +494,19 @@ VEMFBroadcast = {
 	};
 	
 	if (_send) then {
+	
+		// Send Message to Channel
+		_index = (toArray(_eRads select _curRad));
+		_index = [(_index select ((count _index)-1))];
+		_index = (toString _index);
+		
+		{
+			call compile format["VEMFCivHQ customChat [%1,'_x'];", _index];
+		} forEach _msg;
+		
 		{
 			if ((_eRads select _curRad) in (assignedItems _x)) then {
-				VEMFChatMsg = _msg;
-				(owner (vehicle _x)) publicVariableClient "VEMFChatMsg";
+				(owner (vehicle _x)) publicVariableClient "VEMFChatSound";
 				_sent = true;
 			};
 		} forEach _allUnits;
@@ -497,17 +536,17 @@ VEMFRemoveDups = {
 // Waits for players to be within the radius of the position
 // Will loop indefinitely until true
 VEMFNearWait = {
-	private ["_pos","_rad"];
+	private ["_pos","_rad","_time"];
 	
 	_pos = _this select 0;
 	_rad = _this select 1;
+	_time = diag_tickTime;
 	
 	while {true} do {
-		if ((count(_pos nearEntities [["Epoch_Male_F", "Epoch_Female_F"], _rad])) > 0) exitWith {};
+		if ((count(_pos nearEntities [["Epoch_Male_F", "Epoch_Female_F"], _rad])) > 0) exitWith {true};
+		if ((diag_tickTime - _time) > 900) exitWith {false};
 		uiSleep 5;
 	};
-	
-	true
 };
 
 // Waits for the Mission to be Completed

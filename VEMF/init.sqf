@@ -71,12 +71,15 @@ diag_log text format["[VEMF]: Server is Running Map: %1", (toLower format ["%1",
 // Lets load our functions
 call compile preprocessFileLineNumbers "\VEMF\VFunctions.sqf";
 
-// Gen Random Weapons
-[] ExecVM VEMFGenRanWeps;
-
 // Let's Load any Addons
 VEMFLock = false;
 [] ExecVM VEMFLoadAddons;
+
+// Gen Radio
+[] ExecVM VEMFRadioGen;
+
+// Gen Random Weapons
+[] ExecVM VEMFGenRanWeps;
 
 // Launch Watchdog
 [] ExecVM VEMFMissWatchdog;
